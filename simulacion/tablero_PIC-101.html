@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablero PIC-101</title>
+<style>
+/* Tablero simple: página blanca, texto negro, series en colores sólidos (azul, rojo, verde, amarillo). */
+:root{
+  --bg:#ffffff; --panel:#ffffff; --well:#ffffff; --ink:#000000; --muted:#555555; --rule:#9a9a9a; --gridl:#e4e4e4;
+  --azul:#0050c8; --rojo:#d40000; --verde:#119b11; --amarillo:#e6a700;
+  --accent:#0050c8; --on-accent:#ffffff; --band:rgba(17,155,17,.18);
+  --ok:#119b11; --warn:#e6a700; --bad:#d40000;
+  --s1:#0050c8; --s2:#d40000; --s3:#119b11;
+  --f-body:Arial,Helvetica,sans-serif; --f-num:Consolas,"Courier New",monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.4}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.page{max-width:1480px;margin:0 auto;padding-block:12px 20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:290px minmax(0,1fr);gap:12px}
+@media (max-width:920px){.page{grid-template-columns:minmax(0,1fr)}}
+.tag{font-weight:700}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+
+.top{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;border-bottom:2px solid var(--ink);padding-bottom:10px}
+.ident{display:flex;flex-direction:column;min-width:0;flex:1 1 320px}
+.ident .tag{font-size:13px;color:var(--muted);font-weight:400}
+.ident h1{margin:0;font-size:22px;font-weight:700;text-wrap:balance}
+.state{padding:8px 14px;font-weight:700;font-size:15px;min-width:200px;text-align:center;background:var(--verde);color:#fff}
+.state.warn{background:var(--amarillo);color:#000}
+.state.bad{background:var(--rojo);color:#fff}
+.faceplate{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--ink);flex:1 1 100%;order:3}
+.fp{flex:1 1 92px;padding:5px 12px;display:flex;flex-direction:column;border-right:1px solid var(--rule)}
+.fp:last-child{border-right:0}
+.fp .tag{font-size:12px;color:var(--muted);font-weight:400}
+.fp .num{font-size:19px;font-weight:700}
+.fp .u{font-size:11px;color:var(--muted);margin-left:3px;font-family:var(--f-body);font-weight:400}
+
+aside{display:flex;flex-direction:column;gap:10px;min-width:0}
+fieldset{margin:0;border:1px solid var(--ink);padding:8px 12px 12px;display:flex;flex-direction:column;gap:9px;min-width:0}
+legend{padding:0 6px;font-weight:700;font-size:14px}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.btn{border:1px solid var(--ink);background:#f0f0f0;padding:6px 12px;cursor:pointer}
+.btn:hover{background:#e0e0e0}
+.btn.main{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:700;min-width:96px}
+.btn.main:hover{background:#003c99}
+#b-pert{background:var(--amarillo);border-color:#000;color:#000;font-weight:700}
+.speed{display:flex;border:1px solid var(--ink)}
+.speed button{flex:1;border:0;border-right:1px solid var(--ink);background:#f0f0f0;padding:5px 0;cursor:pointer;font-family:var(--f-num);font-size:12.5px}
+.speed button:last-child{border-right:0}
+.speed button[aria-pressed="true"]{background:var(--azul);color:#fff}
+.k{display:grid;grid-template-columns:auto minmax(0,1fr) 78px;gap:4px 10px;align-items:center}
+.k label{font-weight:700;font-size:15px;min-width:22px}
+.k input[type=range]{width:100%;accent-color:var(--azul)}
+.k input[type=number],.f input,.f select{background:#fff;border:1px solid var(--ink);padding:4px 6px;font-family:var(--f-num);font-size:13px;width:100%;min-width:0}
+.k small{grid-column:2/-1;color:var(--muted);font-size:12px;margin-top:-3px}
+.f{display:flex;flex-direction:column;gap:3px;min-width:0}
+.f label{font-size:12.5px;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px}
+  .acc{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:13px;border-bottom:1px solid var(--gridl);padding-bottom:7px}
+  .acc .chk{font-weight:700;font-size:14px}
+  .fp.alerta .num{color:var(--rojo)}
+.note{font-size:12.5px;color:var(--muted);margin:0}
+.meter{height:12px;border:1px solid var(--ink);background:#fff}
+.meter i{display:block;height:100%;width:0;background:var(--verde)}
+.esc{display:flex;flex-direction:column;gap:4px}
+.esc button{display:grid;grid-template-columns:20px minmax(0,1fr);gap:2px 6px;text-align:left;border:1px solid var(--rule);background:#fff;padding:6px 8px;cursor:pointer}
+.esc button:hover{background:#eef3fc;border-color:var(--azul)}
+.esc b{font-family:var(--f-num);color:var(--azul);grid-row:1/3}
+.esc span{font-weight:700} .esc em{font-style:normal;font-size:12px;color:var(--muted)}
+
+main{display:flex;flex-direction:column;gap:10px;min-width:0}
+.rec{border:1px solid var(--ink)}
+.rec-head{display:flex;flex-wrap:wrap;gap:4px 18px;align-items:baseline;padding:7px 12px;border-bottom:1px solid var(--ink)}
+.rec-head .tag{font-size:14px}
+.consts{display:flex;flex-wrap:wrap;gap:4px 16px;font-family:var(--f-num);font-size:12.5px;color:var(--muted)}
+.consts b{color:var(--ink)}
+canvas#cv{display:block;width:100%}
+.alarms{border:1px solid var(--ink)}
+.alarms h2{margin:0;padding:7px 12px;border-bottom:1px solid var(--ink);font-size:14px;font-weight:700}
+.alarms ol{list-style:none;margin:0;padding:0;max-height:190px;overflow:auto;font-size:13px}
+.alarms li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px;padding:4px 12px 4px 9px;border-left:5px solid transparent;border-bottom:1px solid var(--gridl)}
+.alarms li .num{color:var(--muted)}
+.alarms li.warn{border-left-color:var(--amarillo)} .alarms li.bad{border-left-color:var(--rojo);font-weight:700} .alarms li.ok{border-left-color:var(--verde)}
+.foot{font-size:12px;color:var(--muted);margin:0}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.seg{display:flex;border:1px solid var(--ink)}
+.seg button{flex:1;border:0;border-right:1px solid var(--ink);background:#f0f0f0;padding:6px 4px;cursor:pointer;font-size:12.5px;line-height:1.25}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--azul);color:#fff;font-weight:700}
+.lbl{font-size:12.5px;color:var(--muted)}
+.checks{display:flex;flex-direction:column;gap:5px}
+.esc-g{margin-top:6px;font-weight:700;color:var(--ink)}
+input:disabled{opacity:.45}
+.btn:disabled{opacity:.45;cursor:default}
+</style>
+
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="ident">
+      <span class="tag">Estación de bombeo · lazo PIC-101 · TFI Teoría de Control (Mazzieri · Yedid)</span>
+      <h1>Control automático de presión de descarga</h1>
+    </div>
+    <div class="faceplate" aria-live="polite">
+      <div class="fp"><span class="tag">Tiempo</span><span class="num" id="r-t">00:00</span></div>
+      <div class="fp"><span class="tag">Modo</span><span class="num" id="r-modo">AUTO</span></div>
+      <div class="fp"><span class="tag">SP θi</span><span class="num"><span id="r-sp">60,00</span><span class="u">bar</span></span></div>
+      <div class="fp"><span class="tag">PV f (PIT-101)</span><span class="num"><span id="r-f">60,00</span><span class="u">bar</span></span></div>
+      <div class="fp"><span class="tag">θo real</span><span class="num"><span id="r-o">60,00</span><span class="u">bar</span></span></div>
+      <div class="fp" id="fp-em"><span class="tag">Error medio 1 min</span><span class="num"><span id="r-em">0,00</span><span class="u">bar</span></span></div>
+      <div class="fp"><span class="tag">OUT u (SC-101)</span><span class="num"><span id="r-u">76,0</span><span class="u">%</span></span></div>
+      <div class="fp"><span class="tag">Qb (FI-101)</span><span class="num"><span id="r-q">1900</span><span class="u">m³/h</span></span></div>
+      <div class="fp"><span class="tag">Fallas QoS</span><span class="num" id="r-fallas">0</span></div>
+    </div>
+    <div class="state" id="estado">Normal</div>
+  </header>
+
+  <aside>
+    <fieldset>
+      <legend>Simulación</legend>
+      <div class="btns">
+        <button class="btn main" id="b-run">Iniciar</button>
+        <button class="btn" id="b-reset">Reiniciar</button>
+      </div>
+      <div class="f"><label id="l-vel">Velocidad (segundos de proceso por segundo)</label>
+        <div class="speed" role="group" aria-labelledby="l-vel" id="seg-vel">
+          <button data-v="1" aria-pressed="false">×1</button><button data-v="10" aria-pressed="true">×10</button><button data-v="30" aria-pressed="false">×30</button><button data-v="60" aria-pressed="false">×60</button>
+        </div></div>
+      <div class="f"><label for="sel-vent">Ventana del registrador</label>
+        <select id="sel-vent"><option value="600">últimos 10 minutos</option><option value="1800">últimos 30 minutos</option></select></div>
+      <label class="chk"><input type="checkbox" id="c-sup" checked> Supervisión activa (detección de fugas y disparo PSHH-102)</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Ejecución por tramos y pausas</legend>
+      <div class="two">
+        <div class="f"><label for="sel-tramo">Largo del tramo</label>
+          <select id="sel-tramo"><option value="10">10 s</option><option value="30" selected>30 s</option><option value="60">1 min</option><option value="300">5 min</option></select></div>
+        <button class="btn" id="b-tramo">Avanzar un tramo</button>
+      </div>
+      <div class="checks"><span class="lbl">Pausar automáticamente cuando</span>
+        <label class="chk"><input type="checkbox" id="a-banda"> θo sale de la banda</label>
+        <label class="chk"><input type="checkbox" id="a-falla"> se registra una falla de QoS</label>
+        <label class="chk"><input type="checkbox" id="a-parada"> la supervisión para la bomba</label></div>
+      <div class="btns"><button class="btn" id="b-guardar">Guardar este estado</button><button class="btn" id="b-volver" disabled>Volver al estado guardado</button></div>
+      <p class="note" id="snap-txt">Guardá un estado para repetir la prueba desde el mismo punto con otras perillas.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Referencia y controlador</legend>
+      <div class="acc" role="group" aria-label="Acciones del controlador habilitadas"><span>Acciones:</span><label class="chk"><input type="checkbox" id="c-P" checked> P</label><label class="chk"><input type="checkbox" id="c-I" checked> I</label><label class="chk"><input type="checkbox" id="c-D" checked> D</label><small>destildar una acción la pone en cero sin perder su constante</small></div>
+      <div class="f"><label id="l-modo">Modo del controlador</label>
+        <div class="seg" role="group" aria-labelledby="l-modo" id="seg-modo">
+          <button data-m="auto" aria-pressed="true">Automático (lazo cerrado)</button><button data-m="manual" aria-pressed="false">Manual (lazo abierto)</button>
+        </div></div>
+      <div class="k"><label for="s-man">u</label><input type="range" id="s-man" min="0" max="100" step="0.5" value="76" disabled><input type="number" id="n-man" min="0" max="100" step="0.5" value="76" aria-label="Salida manual en %" disabled><small>salida manual a la bomba [%] · solo en modo manual</small></div>
+      <div class="k"><label for="s-vn">θi</label><input type="range" id="s-vn" min="40" max="68" step="0.5" value="60"><input type="number" id="n-vn" min="40" max="68" step="0.5" value="60" aria-label="θi en bar"><small>bar · en el PLC equivale a <span id="o-ma">13,60</span> mA</small></div>
+      <div class="k"><label for="s-kp">Kp</label><input type="range" id="s-kp" min="0" max="80" step="0.5" value="10"><input type="number" id="n-kp" min="0" max="800" step="0.5" value="10" aria-label="Kp"><small>% de velocidad por bar de error</small></div>
+      <div class="k"><label for="s-ki">Ki</label><input type="range" id="s-ki" min="0" max="120" step="0.01" value="6.67"><input type="number" id="n-ki" min="0" max="120" step="0.01" value="6.67" aria-label="Ki"><small>% por bar·min (6,67 = 400 % por bar·h)</small></div>
+      <div class="k"><label for="s-kv">Kv</label><input type="range" id="s-kv" min="0" max="20" step="0.1" value="0"><input type="number" id="n-kv" min="0" max="20" step="0.1" value="0" aria-label="Kv"><small>%·min por bar · 0 = derivativa inhibida (PI)</small></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Perturbaciones en vivo (perillas)</legend>
+      <div class="k"><label for="s-dem">θd</label><input type="range" id="s-dem" min="-20" max="40" step="1" value="0"><input type="number" id="n-dem" min="-20" max="40" step="1" value="0" aria-label="Baja de demanda en %"><small>baja de demanda aguas abajo [%] · negativo = sube</small></div>
+      <div class="k"><label for="s-fug">θd</label><input type="range" id="s-fug" min="0" max="400" step="10" value="0"><input type="number" id="n-fug" min="0" max="400" step="10" value="0" aria-label="Fuga en m³/h"><small>fuga en el tramo [m³/h]</small></div>
+      <div class="k"><label for="s-med">n</label><input type="range" id="s-med" min="-20" max="20" step="0.5" value="0"><input type="number" id="n-med" min="-20" max="20" step="0.5" value="0" aria-label="Error del transmisor en bar"><small>error en la lectura del transmisor [bar]</small></div>
+      <div class="btns"><button class="btn" id="b-cero">Poner perillas en cero</button></div>
+      <p class="note">Actúan apenas se mueven, con la simulación en marcha o detenida, y quedan hasta volverlas a cero.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Perturbación con duración</legend>
+      <div class="f"><label for="p-tipo">Tipo</label>
+        <select id="p-tipo">
+          <option value="demanda">θd · baja de demanda aguas abajo [%]</option>
+          <option value="fuga">θd · fuga en el tramo [m³/h]</option>
+          <option value="medicion">n · error en el transmisor [bar]</option>
+        </select></div>
+      <div class="two">
+        <div class="f"><label for="p-amp">Amplitud</label><input id="p-amp" type="number" step="any" value="15"></div>
+        <div class="f"><label for="p-dur">Duración [s] (0 = sostenida)</label><input id="p-dur" type="number" min="0" step="1" value="0"></div>
+      </div>
+      <div class="btns"><button class="btn" id="b-pert">Generar perturbación</button><button class="btn" id="b-cut">Cortar</button></div>
+      <p class="note">Se suma a lo que marquen las perillas.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Calidad de servicio (QoS)</legend>
+      <div class="two">
+        <div class="f"><label for="q-banda">Banda admisible [± %]</label><input id="q-banda" type="number" min="0.1" step="0.1" value="1"></div>
+        <div class="f"><label for="q-tol">Tolerado fuera [s]</label><input id="q-tol" type="number" min="1" step="1" value="120"></div>
+      </div>
+      <div class="meter" aria-hidden="true"><i id="q-bar"></i></div>
+      <p class="note num" id="q-txt">Dentro de banda</p>
+      <p class="note">Fuera de banda menos que lo tolerado: perturbación transitoria. Más tiempo, o presión real sobre 70 bar: falla.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Escenarios (perturbación a los 30 s)</legend>
+      <div class="esc" id="escenarios"></div>
+    </fieldset>
+  </aside>
+
+  <main>
+    <section class="rec" aria-label="Registrador de señales del lazo">
+      <div class="rec-head"><span class="tag">Registrador · señales del lazo, una debajo de la otra</span><div class="consts" id="consts"></div></div>
+      <canvas id="cv" aria-label="Nueve señales del lazo apiladas sobre el mismo eje de tiempo"></canvas>
+    </section>
+    <section class="alarms"><h2>Resumen de eventos y alarmas</h2><ol id="log"></ol></section>
+    <p class="foot">Modelo: tramo de 80 km (C<sub>L</sub> = 4,05 m³/bar, τp ≈ 7 min), variador y bomba (K<sub>B</sub> = 25 m³/h por %, τv = 10 s), transmisor 0-100 bar / 4-20 mA (τt = 1 s, ruido 0,05 bar), ciclo del PLC 1 s. Es el mismo modelo que simulacion_presion.py. Atajos: espacio inicia o detiene, T avanza un tramo, P genera, C corta, R reinicia.</p>
+  </main>
+</div>
+
+<script>
+"use strict";
+// ---------- Modelo (igual que simulacion_presion.py) ----------
+const L=80e3, D=0.8128, ESP=0.0127, K_CRUDO=15000, E_ACERO=2.07e6;
+const C_L=Math.PI/4*D*D*L*(1/K_CRUDO + D/(ESP*E_ACERO));      // m3/bar
+const P_SIG=5, Q_NOM=1900, P_NOM=60, K_OUT=Q_NOM/(P_NOM-P_SIG), P_MAX=70;
+const K_B=25, TAU_V=10/3600, TAU_T=1/3600, SIG_P=0.05, SIG_Q=10, TS=1/3600, U0=Q_NOM/K_B, TAU_D=5/3600;
+const HIST_MAX=1800;
+
+// Generador de ruido con estado copiable (para guardar y volver a un estado)
+class Rng{
+  constructor(seed){this.a=seed>>>0;this.spare=null}
+  u(){let a=this.a|0;a=a+0x6D2B79F5|0;this.a=a;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
+  normal(){if(this.spare!==null){const s=this.spare;this.spare=null;return s}let x,y,r;do{x=2*this.u()-1;y=2*this.u()-1;r=x*x+y*y}while(r===0||r>=1);const m=Math.sqrt(-2*Math.log(r)/r);this.spare=y*m;return x*m}
+}
+
+class Lazo{
+  constructor(kp,kiMin,kv,vn,seed){
+    this.rng=new Rng(seed||1);
+    this.kp=kp; this.ki=kiMin*60; this.kv=kv; this.vn=vn; this.supervision=true;
+    this.modo="auto"; this.uMan=U0;
+    this.theta_o=vn; this.Q_b=K_OUT*(vn-P_SIG); this.P_med=vn; this.f_filt=vn;
+    this.integ=this.ki>0?(this.Q_b/K_B-U0)/this.ki:0;
+    this.k_out=K_OUT; this.fuga=0; this.ataque=0; this.parada=null; this.motivo=null;
+    this.buf=[]; this.psup=[]; this.k=0;
+  }
+  paso(){
+    const t=this.k, Q_f=this.parada===null?this.fuga:0;
+    // H: transmisor PIT-101
+    this.P_med+=TS/TAU_T*(this.theta_o-this.P_med);
+    const f=this.P_med+this.rng.normal()*SIG_P-this.ataque;
+    // Σ y Gc: PID con derivativa sobre la medición filtrada, saturación y anti-windup
+    const err=this.vn-f, fprev=this.f_filt;
+    this.f_filt+=TS/TAU_D*(f-this.f_filt);
+    let uP=this.kp*err, uI=this.ki*this.integ, uD=-this.kv*(this.f_filt-fprev)/(TS*60), u;
+    if(this.modo==="manual"){
+      // Lazo abierto: la orden a la bomba la fija el operador. La integral sigue a la salida
+      // para que el paso a automático no produzca un salto (transferencia sin golpe).
+      u=this.uMan; if(this.ki>0) this.integ=(u-U0-uP)/this.ki; uP=0; uI=0; uD=0;
+    }else{
+      u=U0+uP+uI+uD;
+      if(this.ki>0){if(u>0&&u<100) this.integ+=err*TS}else this.integ=0;
+    }
+    u=Math.min(Math.max(u,0),100); if(this.parada!==null) u=0;
+    // Ga (variador + bomba) y Gp (tramo)
+    this.Q_b+=TS/TAU_V*(K_B*u-this.Q_b);
+    const Q_out=this.k_out*(this.theta_o-P_SIG);
+    this.theta_o+=TS*(this.Q_b-Q_out-Q_f)/C_L;
+    // Supervisión con instrumentos propios: balance corregido por empaque y disparo por alta presión
+    this.buf.push((this.Q_b+this.rng.normal()*SIG_Q)-(Q_out+this.rng.normal()*SIG_Q));
+    this.psup.push(this.theta_o+this.rng.normal()*SIG_P);
+    if(this.buf.length>30){this.buf.shift();this.psup.shift()}
+    const mean=this.buf.reduce((a,b)=>a+b,0)/this.buf.length;
+    const balance=mean-C_L*(this.psup[this.psup.length-1]-this.psup[0])/((this.psup.length-1)*TS+1e-9);
+    if(this.supervision&&this.parada===null){
+      if(balance>150&&this.k>60){this.parada=t;this.motivo="fuga detectada por balance"}
+      else if(this.theta_o>P_MAX){this.parada=t;this.motivo="alta presión (PSHH-102)"}
+    }
+    this.k++;
+    const theta_d=(K_OUT-this.k_out)*(this.theta_o-P_SIG)-Q_f;
+    return {t,theta_i:this.vn,e:err,u,uP,uI,uD,Q_b:this.Q_b,Q_out,theta_d,theta_o:this.theta_o,n:-this.ataque,f};
+  }
+}
+
+// ---------- Estado ----------
+const $=id=>document.getElementById(id);
+const fmt=(x,d=1)=>x.toLocaleString("es-AR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const st={run:false,vel:10,ventana:600,pert:null,fuera:null,falla:false,fallas:0,acc:0,programada:null,ultimaFuera:0,tramo:0,tramoLargo:0,pausar:null,snap:null,huboPert:false,estable:0,informado:false,ess:0};
+let lazo, hist;
+const KEYS=["t","theta_i","e","u","uP","uI","uD","Q_b","Q_out","theta_d","theta_o","n","f"];
+const mmss=s=>{s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
+function registrar(msg,cls){const li=document.createElement("li");if(cls)li.className=cls;
+  li.innerHTML=`<span class="num">${mmss(lazo?lazo.k:0)}</span><span></span>`;li.lastChild.textContent=msg;
+  $("log").prepend(li);while($("log").children.length>60)$("log").lastChild.remove()}
+
+const GAN=["vn","kp","ki","kv"], PER=["dem","fug","med"];
+function leer(){const g={};GAN.forEach(k=>g[k]=+$("n-"+k).value||0);return g}
+// Ganancias efectivas: una acción deshabilitada vale cero en el PLC
+const ACC={kp:"c-P",ki:"c-I",kv:"c-D"};
+function efectivas(){const g=leer();for(const k in ACC)if(!$(ACC[k]).checked)g[k]=0;return g}
+function nombreLey(){if(lazo&&lazo.modo==="manual")return "manual (lazo abierto)";
+  const a=["P","I","D"].filter(x=>$("c-"+x).checked&&+$("n-"+{P:"kp",I:"ki",D:"kv"}[x]).value>0);return a.length?a.join(""):"sin acción (lazo abierto)"}
+// Cualquier cambio rearma el aviso de régimen
+function cambio(){st.huboPert=true;st.informado=false;st.estable=0}
+function perillas(){return{dem:+$("n-dem").value||0,fug:+$("n-fug").value||0,med:+$("n-med").value||0}}
+function salidas(){const g=leer(),on=k=>$(ACC[k]).checked,off=k=>on(k)?"":" (deshabilitada)";
+  $("o-ma").textContent=fmt(4+0.16*g.vn,2);
+  $("consts").innerHTML=`<span>Ley <b>${nombreLey()}</b></span><span>Kp <b>${fmt(g.kp,1)}</b> %/bar${off("kp")}</span><span>Ki <b>${fmt(g.ki,2)}</b> %/bar·min${off("ki")}</span><span>Kv <b>${fmt(g.kv,1)}</b> %·min/bar${on("kv")&&g.kv===0?" (inhibida)":off("kv")}</span><span>θi <b>${fmt(g.vn,1)}</b> bar = ${fmt(4+0.16*g.vn,2)} mA</span><span>banda ±${fmt(+$("q-banda").value||1,1)} % · tolerado ${+$("q-tol").value||120} s</span>`}
+function aplicar(){const g=efectivas();if(lazo){cambio();lazo.kp=g.kp;lazo.ki=g.ki*60;lazo.kv=g.kv;lazo.vn=g.vn}salidas()}
+function sync(k,v){$("s-"+k).value=v;$("n-"+k).value=v}
+
+// Las perturbaciones = perillas en vivo + la perturbación con duración, sumadas
+function aplicarPerts(){const q=perillas(),p=st.pert;
+  const dem=q.dem+(p&&p.tipo==="demanda"?p.amp:0), fug=q.fug+(p&&p.tipo==="fuga"?p.amp:0), med=q.med+(p&&p.tipo==="medicion"?p.amp:0);
+  lazo.k_out=K_OUT*(1-dem/100); lazo.fuga=fug; lazo.ataque=-med}
+const NOMBRE={demanda:"baja de demanda",fuga:"fuga en el tramo",medicion:"error en el transmisor"}, UNI={demanda:"%",fuga:"m³/h",medicion:"bar"};
+function generar(){const amp=parseFloat($("p-amp").value),dur=Math.max(0,parseFloat($("p-dur").value)||0);
+  if(!isFinite(amp)){registrar("Escribí una amplitud numérica para generar la perturbación","warn");return}
+  const tipo=$("p-tipo").value;st.pert={tipo,amp,dur,t0:lazo.k};aplicarPerts();cambio();
+  registrar(`Perturbación: ${NOMBRE[tipo]} de ${fmt(amp,amp%1?1:0)} ${UNI[tipo]}, ${dur?dur+" s":"sostenida"}`,"warn")}
+function cortar(){if(st.pert){st.pert=null;aplicarPerts();cambio();registrar("Perturbación cortada")}}
+function perillasCero(){PER.forEach(k=>sync(k,0));if(lazo){aplicarPerts();registrar("Perillas de perturbación en cero")}}
+
+function setModo(m,log=true){$("seg-modo").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===m));
+  ["s-man","n-man"].forEach(id=>$(id).disabled=(m!=="manual"));
+  if(!lazo)return;
+  if(m==="manual"&&lazo.modo!=="manual"){const u=hist&&hist.u.length?hist.u[hist.u.length-1]:U0;lazo.uMan=Math.round(u*2)/2;sync("man",lazo.uMan)}
+  if(lazo.modo!==m)cambio(); lazo.modo=m; if(log)registrar(m==="manual"?`Controlador en MANUAL: lazo abierto, bomba fija en ${fmt(lazo.uMan)} %`:"Controlador en AUTOMÁTICO: lazo cerrado",m==="manual"?"warn":"ok");faceplate()}
+
+function reiniciar(){const g=efectivas();lazo=new Lazo(g.kp,g.ki,g.kv,g.vn,1);lazo.supervision=$("c-sup").checked;
+  const manual=$("seg-modo").querySelector('[data-m="manual"]').getAttribute("aria-pressed")==="true";
+  if(manual){lazo.modo="manual";lazo.uMan=U0;sync("man",U0)}
+  PER.forEach(k=>sync(k,0));
+  hist={};KEYS.forEach(k=>hist[k]=[]);Object.assign(st,{run:false,pert:null,fuera:null,falla:false,fallas:0,acc:0,programada:null,ultimaFuera:0,tramo:0,pausar:null,huboPert:false,estable:0,informado:false,ess:0});
+  $("b-run").textContent="Iniciar";$("log").innerHTML="";
+  for(let i=0;i<60;i++)avanzar();
+  st.pausar=null;
+  registrar(`Sistema en condiciones normales: ${fmt(g.vn,0)} bar, bomba al 76 %`,"ok");dibujar();faceplate()}
+function marcha(on,msg){st.run=on;$("b-run").textContent=on?"Detener":"Continuar";if(msg)registrar(msg.t,msg.c);faceplate()}
+function toggleRun(){st.tramo=0;marcha(!st.run,{t:!st.run?"Simulación en marcha":"Simulación detenida en este instante"})}
+function tramo(){const n=+$("sel-tramo").value||30;st.tramo=n;st.tramoLargo=n;marcha(true,{t:`Avanza un tramo de ${n>=60?n/60+" min":n+" s"}`})}
+
+function qos(s){const banda=lazo.vn*(+$("q-banda").value||1)/100,tol=+$("q-tol").value||120,t=s.t+1;
+  if(Math.abs(s.theta_o-lazo.vn)>banda){
+    if(st.fuera===null){st.fuera=t;registrar(`θo sale de la banda ±${fmt(+$("q-banda").value||1,1)} % (${fmt(s.theta_o,2)} bar)`,"warn");if($("a-banda").checked)st.pausar="θo salió de la banda"}
+    st.ultimaFuera=t-st.fuera;
+    if(!st.falla&&(t-st.fuera>=tol||s.theta_o>P_MAX)){st.falla=true;st.fallas++;
+      registrar(s.theta_o>P_MAX?"FALLA de QoS: la presión real supera 70 bar":`FALLA de QoS: más de ${tol} s fuera de banda`,"bad");if($("a-falla").checked)st.pausar="se registró una falla de QoS"}
+  }else if(st.fuera!==null){const d=t-st.fuera;
+    registrar(`θo vuelve a la banda después de ${d} s`+(st.falla?" (la falla queda registrada)":": perturbación transitoria, QoS cumplida"),st.falla?"":"ok");
+    st.fuera=null;st.falla=false;st.ultimaFuera=0}}
+
+function avanzar(){
+  if(st.programada&&lazo.k>=st.programada.t){const p=st.programada;st.programada=null;$("p-tipo").value=p.tipo;$("p-amp").value=p.amp;$("p-dur").value=p.dur;generar()}
+  const p=st.pert;if(p&&p.dur>0&&lazo.k>=p.t0+p.dur){st.pert=null;aplicarPerts();cambio();registrar(`Fin de la perturbación (duró ${p.dur} s)`)}
+  const antes=lazo.parada,s=lazo.paso();
+  if(lazo.parada!==null&&antes===null){registrar("PARADA de la bomba por la supervisión: "+lazo.motivo,"bad");if($("a-parada").checked)st.pausar="la supervisión paró la bomba"}
+  qos(s);KEYS.forEach(k=>hist[k].push(s[k]));if(hist.t.length>HIST_MAX)KEYS.forEach(k=>hist[k].shift());regimen()}
+
+// Error en estado estable: promedio del error en el último minuto y aviso cuando el lazo se asienta
+const prom=(a,i,j)=>{let x=0;for(let m=i;m<j;m++)x+=a[m];return x/(j-i)};
+function regimen(){const n=hist.e.length;if(n<60)return;st.ess=prom(hist.e,n-60,n);
+  if(n<120||!st.huboPert||lazo.parada!==null)return;
+  const ant=prom(hist.e,n-120,n-60),o=prom(hist.theta_o,n-60,n),o2=prom(hist.theta_o,n-120,n-60);
+  if(Math.abs(o-o2)<0.03&&Math.abs(st.ess-ant)<0.03)st.estable++;else{st.estable=0;if(Math.abs(o-o2)>0.1)st.informado=false}
+  if(st.estable===60&&!st.informado){st.informado=true;const banda=lazo.vn*(+$("q-banda").value||1)/100,ee=st.ess,real=o-lazo.vn;
+    if(Math.abs(ee)>banda)registrar(`Régimen alcanzado con error permanente de ${fmt(ee,2)} bar: el SCADA muestra PV ${fmt(lazo.vn-ee,2)} bar contra SP ${fmt(lazo.vn,2)} bar y la presión no vuelve sola (ley ${nombreLey()})`,"bad");
+    else if(Math.abs(real)>banda)registrar(`Régimen alcanzado: el SCADA ve PV = SP, pero la presión real θo está en ${fmt(o,2)} bar. El lazo sigue a la medición, no a la presión (ley ${nombreLey()})`,"bad");
+    else if(Math.abs(ee)>0.1)registrar(`Régimen alcanzado con un error permanente de ${fmt(ee,2)} bar, dentro de la banda (ley ${nombreLey()})`,"warn");
+    else registrar(`Régimen alcanzado sin error: PV = SP (ley ${nombreLey()})`,"ok")}}
+
+// ---------- Guardar y volver a un estado ----------
+const copia=o=>JSON.parse(JSON.stringify(o));
+function guardar(){st.snap={lazo:copia(lazo),hist:copia(hist),
+  st:copia({pert:st.pert,fuera:st.fuera,falla:st.falla,fallas:st.fallas,ultimaFuera:st.ultimaFuera,programada:st.programada,huboPert:st.huboPert,estable:st.estable,informado:st.informado,ess:st.ess}),
+  ui:{g:leer(),q:perillas(),modo:lazo.modo,uMan:lazo.uMan,acc:["P","I","D"].filter(x=>$("c-"+x).checked).join("")}};
+  $("b-volver").disabled=false;$("snap-txt").textContent=`Estado guardado en ${mmss(lazo.k)}: θo = ${fmt(lazo.theta_o,2)} bar.`;
+  registrar(`Estado guardado (θo = ${fmt(lazo.theta_o,2)} bar)`)}
+function volver(){const s=st.snap;if(!s)return;
+  const nuevo=new Lazo(0,0,0,60,1);Object.assign(nuevo,copia(s.lazo));nuevo.rng=Object.assign(new Rng(1),s.lazo.rng);lazo=nuevo;
+  hist=copia(s.hist);Object.assign(st,copia(s.st),{acc:0,tramo:0,pausar:null});
+  ["P","I","D"].forEach(x=>$("c-"+x).checked=s.ui.acc.includes(x));GAN.forEach(k=>sync(k,s.ui.g[k]));PER.forEach(k=>sync(k,s.ui.q[k]));sync("man",s.ui.uMan);setModo(s.ui.modo,false);
+  salidas();marcha(false,{t:`Volvió al estado guardado en ${mmss(lazo.k)}: cambiá las perillas y seguí`});dibujar()}
+
+// ---------- Escenarios (los de la Tabla 5 del informe) ----------
+const ESC=[
+  {n:"PI · baja de demanda 15 %",d:"Sale de banda unos 80 s y vuelve sola: transitoria",g:{kp:10,ki:6.67,kv:0},p:{tipo:"demanda",amp:15,dur:0}},
+  {n:"Solo P · la misma baja",d:"Queda 1 bar arriba: error permanente, falla a los 120 s",g:{kp:10,ki:6.67,kv:0},a:"P",p:{tipo:"demanda",amp:15,dur:0}},
+  {n:"Solo P · baja de 60 s",d:"Dura poco: transitoria",g:{kp:10,ki:6.67,kv:0},a:"P",p:{tipo:"demanda",amp:15,dur:60}},
+  {n:"PID · Kv = 5",d:"Sin perturbación: la D transmite el ruido a la bomba",g:{kp:10,ki:6.67,kv:5},p:null},
+  {n:"PI · Ki = 90 %/bar·min",d:"Supera el límite de Routh: ciclo límite con la bomba saturada",g:{kp:10,ki:90,kv:0},p:{tipo:"demanda",amp:15,dur:0}},
+  {n:"Fuga de 200 m³/h",d:"El PI la tapa; la supervisión para la bomba",g:{kp:10,ki:6.67,kv:0},p:{tipo:"fuga",amp:200,dur:0}},
+  {n:"Transmisor falseado −15 bar",d:"La presión real sube hasta el disparo de 70 bar",g:{kp:10,ki:6.67,kv:0},p:{tipo:"medicion",amp:-15,dur:0}},
+  {grupo:"Cada acción por separado (misma baja de 15 %)",n:"Sin control · manual al 76 %",d:"Lazo abierto: la presión sube hacia 69,7 bar",g:{kp:10,ki:6.67,kv:0},modo:"manual",p:{tipo:"demanda",amp:15,dur:0},vent:1800},
+  {n:"Solo I · la misma baja",d:"Anula el error, pero oscila casi sin amortiguar",g:{kp:10,ki:6.67,kv:0},a:"I",p:{tipo:"demanda",amp:15,dur:0},vent:1800},
+  {n:"Solo D · Kv = 5",d:"No corrige el error: termina como sin control",g:{kp:10,ki:6.67,kv:5},a:"D",p:{tipo:"demanda",amp:15,dur:0},vent:1800},
+];
+function setVentana(v){st.ventana=v;$("sel-vent").value=String(v);dibujar()}
+function cargarEsc(i,correr=true){const e=ESC[i],a=e.a||"PID";["P","I","D"].forEach(x=>$("c-"+x).checked=a.includes(x));sync("kp",e.g.kp);sync("ki",e.g.ki);sync("kv",e.g.kv);sync("vn",60);$("c-sup").checked=true;
+  setModo(e.modo||"auto",false);salidas();reiniciar();setVentana(e.vent||600);
+  if(e.p)st.programada={t:lazo.k+30,...e.p};registrar(`Escenario ${i+1}: ${e.n}`);if(correr)marcha(true,{t:"Simulación en marcha"})}
+ESC.forEach((e,i)=>{if(e.grupo){const g=document.createElement("p");g.className="note esc-g";g.textContent=e.grupo;$("escenarios").appendChild(g)}
+  const b=document.createElement("button");b.innerHTML=`<b>${i+1}</b><span></span><em></em>`;
+  b.children[1].textContent=e.n;b.children[2].textContent=e.d;b.addEventListener("click",()=>cargarEsc(i));$("escenarios").appendChild(b)});
+
+// ---------- Registrador ----------
+const AZ=0,RO=1,VE=2,AM=3;
+const PANELES=[
+  {t:"θi · valor de referencia [bar]",k:["theta_i"],min:2,c:VE},
+  {t:"e = θi − f · error [bar]",k:["e"],min:1,cero:true,c:RO},
+  {t:"u · orden de velocidad al variador SC-101 [%]",k:["u"],min:10,lim:[0,100],c:AZ},
+  {t:"Aportes del controlador [%]",k:["uP","uI","uD"],min:4,leg:["P (Kp)","I (Ki)","D (Kv)"],cero:true},
+  {t:"Qb bombeado · Qout que sale del tramo [m³/h]",k:["Q_b","Q_out"],min:200,leg:["Qb","Qout"]},
+  {t:"θd · perturbación de caudal [m³/h]",k:["theta_d"],min:100,cero:true,c:AM},
+  {t:"θo · presión de descarga real (variable controlada) [bar]",k:["theta_o"],min:3,banda:true,c:AZ},
+  {t:"n · perturbación en la medición [bar]",k:["n"],min:2,cero:true,c:AM},
+  {t:"f · lectura del transmisor PIT-101 (valor medido) [bar]",k:["f"],min:3,c:VE},
+];
+const cv=$("cv"),ctx=cv.getContext("2d");
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function dibujar(){
+  const W=cv.clientWidth,PH=76,H=PANELES.length*PH+28,dpr=window.devicePixelRatio||1;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv.style.height=H+"px"}
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const c={well:css("--well"),ink:css("--ink"),muted:css("--muted"),rule:css("--rule"),grid:css("--gridl"),band:css("--band"),bad:css("--bad"),s:[css("--azul"),css("--rojo"),css("--verde"),css("--amarillo")]};
+  const fb=css("--f-body"),fn=css("--f-num");
+  ctx.fillStyle=css("--panel");ctx.fillRect(0,0,W,H);
+  const V=st.ventana,X0=58,X1=W-10,n=hist.t.length;if(!n)return;
+  const i0=Math.max(0,n-V);
+  const tEnd=Math.max(hist.t[n-1],V-1),tIni=tEnd-V+1,xs=t=>X0+(t-tIni)/(V-1)*(X1-X0);
+  const bandaPct=(+$("q-banda").value||1)/100;
+  const paso=V<=600?(W<560?180:W<900?120:60):(W<560?600:W<900?300:180);
+  PANELES.forEach((p,i)=>{
+    const py=i*PH,y0=py+21,y1=py+PH-8;
+    ctx.fillStyle=c.well;ctx.fillRect(X0,y0,X1-X0,y1-y0);
+    let lo=Infinity,hi=-Infinity;p.k.forEach(k=>{for(let m=i0;m<n;m++){const v=hist[k][m];if(v<lo)lo=v;if(v>hi)hi=v}});
+    if(p.banda){const b=lazo.vn*bandaPct;lo=Math.min(lo,lazo.vn-2*b);hi=Math.max(hi,lazo.vn+2*b)}
+    const cc=(lo+hi)/2,sp=Math.max(hi-lo,p.min)*1.15;lo=cc-sp/2;hi=cc+sp/2;
+    if(p.lim){const r=hi-lo;if(lo<p.lim[0]){lo=p.lim[0];hi=Math.min(p.lim[1],lo+r)}if(hi>p.lim[1]){hi=p.lim[1];lo=Math.max(p.lim[0],hi-r)}}
+    const ys=v=>y1-(v-lo)/(hi-lo)*(y1-y0);
+    ctx.textBaseline="alphabetic";ctx.textAlign="left";ctx.fillStyle=c.ink;ctx.font="600 12.5px "+fb;ctx.fillText(p.t,X0,py+15);
+    if(p.leg){ctx.font="600 12.5px "+fb;const tw=ctx.measureText(p.t).width;ctx.font="11.5px "+fn;
+      const lw=p.leg.reduce((a,l)=>a+ctx.measureText("━ "+l).width+14,0);const dentro=X0+tw+16+lw>X1;
+      let lx=dentro?X1-6:X1;const ly=dentro?y0+13:py+15;ctx.textAlign="right";
+      for(let j=p.leg.length-1;j>=0;j--){ctx.fillStyle=c.s[j];const s="━ "+p.leg[j];ctx.fillText(s,lx,ly);lx-=ctx.measureText(s).width+14}}
+    ctx.strokeStyle=c.grid;ctx.lineWidth=1;ctx.beginPath();
+    for(let s=Math.ceil(tIni/paso)*paso;s<=tEnd;s+=paso){const x=Math.round(xs(s))+.5;ctx.moveTo(x,y0);ctx.lineTo(x,y1)}
+    ctx.moveTo(X0,Math.round((y0+y1)/2)+.5);ctx.lineTo(X1,Math.round((y0+y1)/2)+.5);ctx.stroke();
+    if(p.cero&&0>lo&&0<hi){ctx.strokeStyle=c.rule;ctx.beginPath();ctx.moveTo(X0,Math.round(ys(0))+.5);ctx.lineTo(X1,Math.round(ys(0))+.5);ctx.stroke()}
+    if(p.banda){const b=lazo.vn*bandaPct,a=Math.max(ys(lazo.vn+b),y0),z=Math.min(ys(lazo.vn-b),y1);ctx.fillStyle=c.band;if(z>a)ctx.fillRect(X0,a,X1-X0,z-a);
+      if(P_MAX<hi){ctx.strokeStyle=c.bad;ctx.setLineDash([5,3]);ctx.beginPath();ctx.moveTo(X0,ys(P_MAX));ctx.lineTo(X1,ys(P_MAX));ctx.stroke();ctx.setLineDash([]);
+        ctx.fillStyle=c.bad;ctx.textAlign="right";ctx.font="11px "+fn;ctx.fillText("máx. 70 bar",X1-6,ys(P_MAX)+12)}}
+    ctx.strokeStyle=c.rule;ctx.strokeRect(X0+.5,y0+.5,X1-X0-1,y1-y0-1);
+    ctx.fillStyle=c.muted;ctx.textAlign="right";ctx.font="11px "+fn;const dec=Math.abs(hi-lo)<5?1:0;
+    ctx.fillText(fmt(hi,dec),X0-6,y0+9);ctx.fillText(fmt(lo,dec),X0-6,y1);
+    p.k.forEach((k,j)=>{ctx.strokeStyle=c.s[p.k.length===1&&p.c!==undefined?p.c:j];ctx.lineWidth=V>600?1.5:2;if(k==="Q_out")ctx.setLineDash([5,3]);ctx.beginPath();
+      for(let m=i0;m<n;m++){const x=xs(hist.t[m]),y=ys(hist[k][m]);m>i0?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.stroke();ctx.setLineDash([])});
+  });
+  const yb=PANELES.length*PH+12;ctx.fillStyle=c.muted;ctx.textAlign="center";ctx.font="11px "+fn;
+  for(let s=Math.ceil(tIni/paso)*paso;s<=tEnd;s+=paso)ctx.fillText(mmss(s),xs(s),yb);
+  ctx.textAlign="right";ctx.font="11px "+fb;ctx.fillText("tiempo de proceso [min:s]",X1,yb+13);
+}
+
+function faceplate(){const n=hist.t.length-1;if(n<0)return;
+  $("r-t").textContent=mmss(hist.t[n]+1);$("r-sp").textContent=fmt(lazo.vn,2);$("r-f").textContent=fmt(hist.f[n],2);$("r-o").textContent=fmt(hist.theta_o[n],2);
+  $("r-u").textContent=fmt(hist.u[n]);$("r-q").textContent=fmt(hist.Q_b[n],0);$("r-fallas").textContent=st.fallas;
+  $("r-modo").textContent=lazo.modo==="manual"?"MANUAL":"AUTO";
+  const ult=hist.e.slice(-60),em=ult.reduce((a,b)=>a+b,0)/ult.length;$("r-em").textContent=fmt(Math.abs(em)<0.005?0:em,2);
+  $("fp-em").classList.toggle("alerta",Math.abs(em)>lazo.vn*(+$("q-banda").value||1)/100);
+  const q=perillas(),activa=st.pert||q.dem!==0||q.fug!==0||q.med!==0;
+  let txt,cls="";
+  if(lazo.parada!==null){txt="Bomba parada · "+(lazo.motivo.startsWith("fuga")?"fuga":"alta presión");cls="bad"}
+  else if(st.falla){txt="Falla de QoS";cls="bad"}else if(st.fuera!==null){txt="Fuera de banda";cls="warn"}
+  else if(lazo.modo==="manual"){txt="Manual · lazo abierto";cls="warn"}
+  else if(activa){txt="Perturbación absorbida"}else txt="Normal";
+  const e=$("estado");e.textContent=txt+(st.run?"":" · detenida");e.className="state "+cls;
+  const tol=+$("q-tol").value||120,fr=st.fuera===null?0:Math.min(1,st.ultimaFuera/tol),bar=$("q-bar");
+  bar.style.width=(fr*100)+"%";bar.style.background=st.falla?css("--bad"):fr>0?css("--warn"):css("--ok");
+  $("q-txt").textContent=st.fuera===null?"Dentro de banda":(st.falla?`Falla: ${st.ultimaFuera} s fuera de banda`:`Fuera de banda: ${st.ultimaFuera} de ${tol} s tolerados`)}
+
+let tPrev=null;
+function loop(ts){if(tPrev===null)tPrev=ts;const dt=Math.min(.25,(ts-tPrev)/1000);tPrev=ts;
+  if(st.run){st.acc+=dt*st.vel;let k=Math.min(Math.floor(st.acc),120);st.acc-=Math.floor(st.acc);let hechos=0;
+    for(let i=0;i<k;i++){avanzar();hechos++;
+      if(st.tramo>0){st.tramo--;if(st.tramo===0){const n=st.tramoLargo;marcha(false,{t:`Tramo de ${n>=60?n/60+" min":n+" s"} completado: simulación detenida`});break}}
+      if(st.pausar){const m=st.pausar;st.pausar=null;st.tramo=0;marcha(false,{t:"Pausa automática: "+m,c:"warn"});break}}
+    if(hechos){dibujar();faceplate()}}
+  requestAnimationFrame(loop)}
+
+// ---------- Eventos ----------
+GAN.forEach(k=>{
+  $("s-"+k).addEventListener("input",()=>{$("n-"+k).value=$("s-"+k).value;aplicar();if(!st.run)dibujar()});
+  $("n-"+k).addEventListener("input",()=>{$("s-"+k).value=$("n-"+k).value;aplicar();if(!st.run)dibujar()})});
+const NPER={dem:["baja de demanda","%"],fug:["fuga","m³/h"],med:["error del transmisor","bar"]};
+PER.forEach(k=>{
+  const ap=()=>{if(lazo){aplicarPerts();cambio();faceplate()}};
+  $("s-"+k).addEventListener("input",()=>{$("n-"+k).value=$("s-"+k).value;ap()});
+  $("n-"+k).addEventListener("input",()=>{$("s-"+k).value=$("n-"+k).value;ap()});
+  const lg=()=>registrar(`Perilla: ${NPER[k][0]} en ${fmt(+$("n-"+k).value||0,k==="med"?1:0)} ${NPER[k][1]}`,(+$("n-"+k).value||0)!==0?"warn":"");
+  $("s-"+k).addEventListener("change",lg);$("n-"+k).addEventListener("change",lg)});
+["c-P","c-I","c-D"].forEach(id=>$(id).addEventListener("change",()=>{aplicar();registrar(`Acción ${id.slice(2)} ${$(id).checked?"habilitada":"deshabilitada"}: ley ${nombreLey()}`);if(!st.run)dibujar()}));
+["s-man","n-man"].forEach(id=>$(id).addEventListener("input",()=>{const v=+$(id).value||0;sync("man",v);if(lazo){lazo.uMan=v;faceplate()}}));
+["s-man","n-man"].forEach(id=>$(id).addEventListener("change",()=>registrar(`Salida manual en ${fmt(+$(id).value||0)} %`)));
+$("seg-modo").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>setModo(b.dataset.m)));
+["q-banda","q-tol"].forEach(id=>$(id).addEventListener("input",()=>{salidas();if(!st.run)dibujar()}));
+$("c-sup").addEventListener("change",()=>{lazo.supervision=$("c-sup").checked;registrar("Supervisión "+(lazo.supervision?"activada":"desactivada"))});
+$("b-run").addEventListener("click",toggleRun);$("b-reset").addEventListener("click",reiniciar);
+$("b-tramo").addEventListener("click",tramo);$("b-guardar").addEventListener("click",guardar);$("b-volver").addEventListener("click",volver);
+$("b-pert").addEventListener("click",generar);$("b-cut").addEventListener("click",cortar);$("b-cero").addEventListener("click",perillasCero);
+$("sel-vent").addEventListener("change",()=>setVentana(+$("sel-vent").value));
+$("seg-vel").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{st.vel=+b.dataset.v;$("seg-vel").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b))}));
+window.addEventListener("resize",()=>dibujar());
+document.addEventListener("keydown",ev=>{if(["INPUT","SELECT"].includes(ev.target.tagName))return;
+  if(ev.key===" "){ev.preventDefault();toggleRun()}else if(ev.key==="t")tramo();else if(ev.key==="p")generar();else if(ev.key==="c")cortar();else if(ev.key==="r")reiniciar()});
+
+salidas();reiniciar();requestAnimationFrame(loop);
+// Acceso para capturas del informe
+window.__tab={avanzar:n=>{for(let i=0;i<n;i++)avanzar();dibujar();faceplate()},cargarEsc,st,hist:()=>hist,log:()=>[...document.querySelectorAll('#log li')].map(l=>l.textContent),lazo:()=>lazo,setModo,guardar,volver,setVentana,
+  perilla:(k,v)=>{sync(k,v);aplicarPerts();faceplate()}};
+</script>
+</body>
+</html>
